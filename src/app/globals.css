@@ -1,26 +1,29 @@
 @import "tailwindcss";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-paper: #f6f3ee;
+  --color-card: #fffdf9;
+  --color-ink: #1c1b19;
+  --color-muted: #78716a;
+  --color-line: #e5dfd5;
+  --color-accent: #8f3a2c;
+  --color-accent-soft: #f3e5df;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+html { background: var(--color-paper); color: var(--color-ink); }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+@utility btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed; }
+@utility btn-primary { @apply btn bg-ink text-paper hover:bg-black; }
+@utility btn-ghost { @apply btn border border-line bg-card text-ink hover:border-ink/40; }
+@utility btn-danger { @apply btn border border-rose-200 bg-card text-rose-700 hover:bg-rose-50; }
+@utility btn-sm { @apply px-3 py-1.5 text-xs; }
+@utility field { @apply w-full rounded-lg border border-line bg-card px-3 py-2 text-sm outline-none focus:border-ink/50 focus:ring-2 focus:ring-ink/10; }
+@utility label { @apply mb-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-muted; }
+@utility card { @apply rounded-2xl border border-line bg-card; }
+@utility eyebrow { @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted; }
