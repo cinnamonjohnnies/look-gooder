@@ -67,6 +67,7 @@ if (cards !== 3) fail(`expected 3 photos, saw ${cards}`);
 // ---- multi-item photo: five shoes, five boxes, five records
 await page.getByText("shelf.jpg").first().click();
 await page.waitForURL("**/import/*");
+await page.getByRole("button", { name: "Done drawing" }).waitFor(); // new photo opens ready to draw
 await page.getByRole("button", { name: "Multiple items" }).click();
 await page.waitForTimeout(500);
 const canvas = page.getByTestId("canvas");
@@ -98,17 +99,45 @@ await page.locator("h1 + span", { hasText: "Audited" }).waitFor();
 await page.screenshot({ path: `${OUT}/04-review-audited.png` });
 log("5-item photo → 5 records, audited only after confirmation");
 
-// ---- adjust a crop: item link must survive
-await page.locator("[data-region]").first().click();
-const first = await page.locator("[data-region]").first().boundingBox();
-await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2);
+// ---- confirming the photo switches to review mode
+await page.getByRole("button", { name: "Draw boxes" }).waitFor();
+log("confirmed photo switched to Done drawing");
+
+// ---- reopening a boxed photo defaults to review mode, yet boxes still move and resize
+await page.reload();
+await page.getByRole("button", { name: "Draw boxes" }).waitFor();
+const box = page.locator("[data-region]").first();
+const before = await box.boundingBox();
+await page.mouse.click(before.x + before.width / 2, before.y + before.height / 2);
+await page.locator("[data-corner='e']").waitFor();
+await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
 await page.mouse.down();
-await page.mouse.move(first.x + first.width / 2 + 20, first.y + first.height / 2 + 10, { steps: 5 });
+await page.mouse.move(before.x + before.width / 2 + 20, before.y + before.height / 2 + 10, { steps: 5 });
+await page.mouse.up();
+await page.waitForTimeout(800);
+const e = await page.locator("[data-corner='e']").boundingBox();
+await page.mouse.move(e.x + e.width / 2, e.y + e.height / 2);
+await page.mouse.down();
+await page.mouse.move(e.x + e.width / 2 + 40, e.y + e.height / 2, { steps: 5 });
 await page.mouse.up();
 await page.waitForTimeout(800);
 await page.reload();
 await page.getByText(/5 boxed · 5 linked/).waitFor();
-log("crop moved, links intact");
+const after = await page.locator("[data-region]").first().boundingBox();
+if (!(after.x > before.x + 10 && after.width > before.width + 25)) fail(`move/resize not saved: ${JSON.stringify({ before, after })}`);
+await page.locator("[data-region]").first().click();
+await page.screenshot({ path: `${OUT}/04b-review-handles.png` });
+log("boxes move and resize in review mode, links intact");
+
+// ---- dragging empty space in review mode does not create a box
+const cb = await page.getByTestId("canvas").boundingBox();
+await page.mouse.move(cb.x + 20, cb.y + 20);
+await page.mouse.down();
+await page.mouse.move(cb.x + 120, cb.y + 120, { steps: 4 });
+await page.mouse.up();
+await page.waitForTimeout(600);
+await page.getByText(/5 boxed · 5 linked/).waitFor();
+log("no accidental boxes in review mode");
 
 // ---- living-room photo: unrelated, audited, never in closet
 await page.goto(`${BASE}/import`);
@@ -141,7 +170,7 @@ await page.getByRole("button", { name: "Save changes" }).click();
 await page.getByText("Saved. Change recorded in history.").waitFor();
 await page.reload();
 await page.getByText("material: empty → suede").waitFor();
-await page.getByText("Crop adjusted").waitFor();
+if ((await page.getByText("Crop adjusted").count()) !== 2) fail("expected two crop adjustments in history");
   await page.getByText("status: Candidate → Photo verified").waitFor();
 await page.screenshot({ path: `${OUT}/07-item-detail.png`, fullPage: true });
 log("item edit recorded in history");

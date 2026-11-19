@@ -17,6 +17,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   ]);
   return (
     <RegionEditor
+      key={image.id}
       image={{
         id: image.id,
         width: image.width,

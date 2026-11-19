@@ -43,7 +43,14 @@ type Img = {
 type Drag =
   | { kind: "draw"; startX: number; startY: number; box: Box }
   | { kind: "move"; id: string; startX: number; startY: number; orig: Box; box: Box }
-  | { kind: "resize"; id: string; corner: "nw" | "ne" | "sw" | "se"; orig: Box; box: Box };
+  | { kind: "resize"; id: string; corner: Handle; orig: Box; box: Box };
+
+type Handle = "n" | "s" | "e" | "w" | "nw" | "ne" | "sw" | "se";
+const HANDLES: Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+const CURSOR: Record<Handle, string> = {
+  n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
+  nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize",
+};
 
 const MIN = 0.01;
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
@@ -63,7 +70,10 @@ export function RegionEditor(props: {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [overrides, setOverrides] = useState<Record<string, Box>>({});
   const [ghost, setGhost] = useState<Box | null>(null);
-  const [drawMode, setDrawMode] = useState(true);
+  // New, unboxed photos open ready to draw; photos already boxed open in review mode.
+  const [drawMode, setDrawMode] = useState(
+    regions.length === 0 && !image.no_more_items_confirmed && image.classification !== "unrelated",
+  );
   const [error, setError] = useState<string | null>(null);
   const [panel, setPanel] = useState<"none" | "new" | "link">("none");
   const canvas = useRef<HTMLDivElement>(null);
@@ -99,13 +109,13 @@ export function RegionEditor(props: {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     const regionId = target.closest<HTMLElement>("[data-region]")?.dataset.region;
-    const corner = target.dataset.corner as "nw" | "ne" | "sw" | "se" | undefined;
+    const corner = target.closest<HTMLElement>("[data-corner]")?.dataset.corner as Handle | undefined;
     const p = point(e);
     if (regionId) {
       setSelected(regionId);
       setPanel("none");
       const b = boxes.find((x) => x.id === regionId)!.box;
-      if (!drawMode) return;
+      // moving and resizing work in both modes; draw mode only governs new boxes
       canvas.current!.setPointerCapture(e.pointerId);
       if (corner) setDrag({ kind: "resize", id: regionId, corner, orig: b, box: b });
       else setDrag({ kind: "move", id: regionId, startX: p.x, startY: p.y, orig: b, box: b });
@@ -161,7 +171,8 @@ export function RegionEditor(props: {
       );
     } else {
       const o = drag.orig;
-      if (b.x === o.x && b.y === o.y && b.w === o.w && b.h === o.h) return;
+      const moved = Math.max(Math.abs(b.x - o.x), Math.abs(b.y - o.y), Math.abs(b.w - o.w), Math.abs(b.h - o.h));
+      if (moved < 0.002) return; // a click to select, not a move
       setOverrides((m) => ({ ...m, [drag.id]: b }));
       act(() => updateRegionBox(drag.id, b));
     }
@@ -227,7 +238,11 @@ export function RegionEditor(props: {
         {/* ---------------------------------------------------------------- photo */}
         <div>
           <div className="mb-2 flex items-center justify-between text-xs text-muted">
-            <span>{drawMode ? "Drag on the photo to box each item. Drag a box to move it, corners to resize." : "Tap a box to select it."}</span>
+            <span>
+              {drawMode
+                ? "Drag on empty space to box an item. Drag a box to move it; drag its handles to resize."
+                : "Tap a box to select it. Drag to move; drag its handles to resize."}
+            </span>
             <button className="btn-ghost btn-sm" onClick={() => setDrawMode((d) => !d)}>
               {drawMode ? "Done drawing" : "Draw boxes"}
             </button>
@@ -235,7 +250,7 @@ export function RegionEditor(props: {
           <div
             ref={canvas}
             data-testid="canvas"
-            className={`relative mx-auto select-none overflow-hidden rounded-xl bg-stone-200 ${drawMode ? "cursor-crosshair touch-none" : ""}`}
+            className={`relative mx-auto select-none rounded-xl bg-stone-200 ${drawMode ? "cursor-crosshair touch-none" : ""}`}
             style={{ aspectRatio: `${image.width} / ${image.height}`, maxHeight: "78vh", maxWidth: `calc(78vh * ${image.width / image.height})` }}
             onPointerDown={onCanvasDown}
             onPointerMove={onCanvasMove}
@@ -243,7 +258,7 @@ export function RegionEditor(props: {
             onPointerCancel={() => setDrag(null)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={sourceImageUrl(image.id, "display")} alt={image.original_filename} draggable={false} className="pointer-events-none h-full w-full" />
+            <img src={sourceImageUrl(image.id, "display")} alt={image.original_filename} draggable={false} className="pointer-events-none h-full w-full rounded-xl" />
             {boxes.map((b) => {
               const s = shown(b);
               const isSel = b.id === selected;
@@ -257,7 +272,9 @@ export function RegionEditor(props: {
                     border: `${isSel ? 3 : 2}px solid ${regionOf(b.status).stroke}`,
                     background: isSel ? "rgba(255,255,255,0.12)" : "transparent",
                     boxShadow: "0 0 0 1px rgba(0,0,0,0.35)",
-                    cursor: drawMode ? "move" : "pointer",
+                    cursor: isSel ? "move" : "pointer",
+                    zIndex: isSel ? 10 : 1, // selected box and its handles sit above neighbours
+                    touchAction: "none",
                   }}
                 >
                   <span
@@ -266,18 +283,25 @@ export function RegionEditor(props: {
                   >
                     {b.n}{b.item ? ` · ${b.item.display_id}` : ""}
                   </span>
-                  {isSel && drawMode &&
-                    (["nw", "ne", "sw", "se"] as const).map((c) => (
+                  {isSel &&
+                    HANDLES.map((c) => (
                       <span
                         key={c}
                         data-corner={c}
-                        className="absolute h-4 w-4 rounded-full border-2 border-white bg-ink"
+                        className="absolute flex h-7 w-7 items-center justify-center"
                         style={{
-                          [c.includes("n") ? "top" : "bottom"]: -8,
-                          [c.includes("w") ? "left" : "right"]: -8,
-                          cursor: c === "nw" || c === "se" ? "nwse-resize" : "nesw-resize",
+                          top: c.includes("n") ? -14 : c.includes("s") ? "auto" : "calc(50% - 14px)",
+                          bottom: c.includes("s") ? -14 : "auto",
+                          left: c.includes("w") ? -14 : c.includes("e") ? "auto" : "calc(50% - 14px)",
+                          right: c.includes("e") ? -14 : "auto",
+                          cursor: CURSOR[c],
+                          touchAction: "none",
                         }}
-                      />
+                      >
+                        <span
+                          className={`pointer-events-none border-2 border-white bg-ink shadow ${c.length === 2 ? "h-3.5 w-3.5 rounded-full" : c === "n" || c === "s" ? "h-2 w-5 rounded-full" : "h-5 w-2 rounded-full"}`}
+                        />
+                      </span>
                     ))}
                 </div>
               );
@@ -448,7 +472,11 @@ export function RegionEditor(props: {
                 className="mt-0.5 h-4 w-4 accent-black"
                 checked={image.no_more_items_confirmed}
                 disabled={pending}
-                onChange={(e) => act(() => setNoMoreItems(image.id, e.target.checked))}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  if (checked) setDrawMode(false);
+                  act(() => setNoMoreItems(image.id, checked));
+                }}
               />
               <span className="text-sm">
                 <span className="font-medium">Every wardrobe item in this photo is boxed.</span>
