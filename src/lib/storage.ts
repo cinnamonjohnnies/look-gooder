@@ -99,7 +99,9 @@ export function storage(): Storage {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required");
-    instance = new SupabaseStorage(url, key, process.env.SUPABASE_BUCKET ?? "look-gooder");
+    // Accept a pasted URL with a path (e.g. .../rest/v1/); only the origin is valid.
+    const origin = new URL(url.trim()).origin;
+    instance = new SupabaseStorage(origin, key.trim(), (process.env.SUPABASE_BUCKET ?? "look-gooder").trim());
   } else {
     instance = new LocalStorage(path.resolve(/*turbopackIgnore: true*/ process.env.STORAGE_DIR ?? ".data/storage"));
   }
