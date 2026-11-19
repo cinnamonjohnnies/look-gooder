@@ -11,6 +11,7 @@ function create() {
   return postgres(url, {
     max: process.env.VERCEL ? 1 : 5,
     prepare: false, // required for Supabase's transaction pooler
+    ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require",
     onnotice: () => {},
   });
 }
