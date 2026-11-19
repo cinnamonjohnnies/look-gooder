@@ -33,7 +33,9 @@ export function Uploader() {
         body: JSON.stringify({ files: batch.map((b) => ({ name: b.file.name, type: b.file.type, size: b.file.size })) }),
       });
       if (!res.ok) {
-        batch.forEach((b) => patch(b.id, { state: "error", message: "Could not start upload" }));
+        const detail = await res.json().catch(() => null);
+        const message = `Could not start upload${detail?.error ? `: ${detail.error}` : ""}`;
+        batch.forEach((b) => patch(b.id, { state: "error", message }));
         return;
       }
       const { results } = (await res.json()) as {

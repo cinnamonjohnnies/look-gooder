@@ -7,7 +7,13 @@ import { storage } from "@/lib/storage";
 
 const Body = z.object({
   files: z
-    .array(z.object({ name: z.string().min(1).max(255), type: z.string().max(100), size: z.number().int().positive() }))
+    .array(
+      z.object({
+        name: z.string().min(1).max(255),
+        type: z.string().max(100),
+        size: z.number().int().positive(),
+      }),
+    )
     .min(1)
     .max(200),
 });
@@ -25,17 +31,29 @@ export async function POST(req: Request) {
   const denied = await unauthorized();
   if (denied) return denied;
   const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "invalid request" }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json({ error: "invalid request" }, { status: 400 });
 
-  const results = await Promise.all(
-    parsed.data.files.map(async (f) => {
-      const type = normalizeType(f.name, f.type);
-      if (!ACCEPTED_TYPES.includes(type)) return { name: f.name, error: "Unsupported file type" };
-      if (f.size > MAX_UPLOAD_BYTES) return { name: f.name, error: "File is larger than 50 MB" };
-      const key = incomingKey(randomUUID(), f.name);
-      const target = await storage().createUploadTarget(key, type);
-      return { name: f.name, key, type, target };
-    }),
-  );
+  let results;
+  try {
+    results = await Promise.all(
+      parsed.data.files.map(async (f) => {
+        const type = normalizeType(f.name, f.type);
+        if (!ACCEPTED_TYPES.includes(type))
+          return { name: f.name, error: "Unsupported file type" };
+        if (f.size > MAX_UPLOAD_BYTES)
+          return { name: f.name, error: "File is larger than 50 MB" };
+        const key = incomingKey(randomUUID(), f.name);
+        const target = await storage().createUploadTarget(key, type);
+        return { name: f.name, key, type, target };
+      }),
+    );
+  } catch (e) {
+    console.error("upload init failed", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "storage unavailable" },
+      { status: 500 },
+    );
+  }
   return NextResponse.json({ results });
 }
