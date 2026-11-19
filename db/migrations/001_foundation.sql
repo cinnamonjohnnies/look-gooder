@@ -444,4 +444,5 @@ alter view item_images set (security_invoker = true);
 -- Lets this file be pasted into the Supabase SQL editor and still be tracked.
 create table if not exists schema_migrations (
   name text primary key, applied_at timestamptz not null default now());
+alter table schema_migrations enable row level security;
 insert into schema_migrations (name) values ('001_foundation.sql') on conflict do nothing;
