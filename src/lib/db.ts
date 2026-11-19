@@ -15,7 +15,19 @@ function create() {
   });
 }
 
-export const sql: postgres.Sql = globalThis.__lgSql ?? (globalThis.__lgSql = create());
+function client(): postgres.Sql {
+  return globalThis.__lgSql ?? (globalThis.__lgSql = create());
+}
+
+// Connect lazily so builds succeed before environment variables are set.
+export const sql = new Proxy(function () {} as unknown as postgres.Sql, {
+  apply: (_t, _this, args) => (client() as unknown as (...a: unknown[]) => unknown)(...args),
+  get: (_t, prop) => {
+    const c = client() as unknown as Record<PropertyKey, unknown>;
+    const v = c[prop];
+    return typeof v === "function" ? (v as (...a: unknown[]) => unknown).bind(c) : v;
+  },
+});
 
 /** Runs work in a transaction tagged with an optional audit note. */
 export async function tx<T>(work: (t: postgres.TransactionSql) => Promise<T>, note = ""): Promise<T> {
