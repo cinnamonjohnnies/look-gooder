@@ -87,3 +87,12 @@ export const COLOR_SUGGESTIONS = [
 ];
 
 export const SEASONS = ["spring", "summer", "fall", "winter"];
+
+// Lookups that never crash on an unexpected value; they show the raw value instead.
+function safe<T extends Record<string, object>>(table: T, fallback: (raw: string) => T[keyof T]) {
+  return (key: unknown): T[keyof T] => table[String(key) as keyof T] ?? fallback(String(key));
+}
+export const verificationOf = safe(VERIFICATION, (r) => ({ label: r, tone: "bg-stone-100 text-stone-700 ring-stone-300" }));
+export const classificationOf = safe(CLASSIFICATION, (r) => ({ label: r, hint: "" }));
+export const auditOf = safe(AUDIT, (r) => ({ label: r, tone: "bg-stone-100 text-stone-700 ring-stone-300" }));
+export const regionOf = safe(REGION, (r) => ({ label: r, stroke: "#78716c", tone: "bg-stone-200 text-stone-700" }));

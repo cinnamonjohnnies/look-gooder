@@ -25,8 +25,7 @@ import {
   type Category,
   type Classification,
   type ItemOption,
-  type RegionView,
-} from "@/lib/domain";
+  type RegionView, classificationOf, regionOf } from "@/lib/domain";
 import { AuditBadge, VerificationBadge } from "./badge";
 import { ItemQuickForm } from "./item-quick-form";
 import { ItemPicker } from "./item-picker";
@@ -255,7 +254,7 @@ export function RegionEditor(props: {
                   className="absolute"
                   style={{
                     left: `${s.x * 100}%`, top: `${s.y * 100}%`, width: `${s.w * 100}%`, height: `${s.h * 100}%`,
-                    border: `${isSel ? 3 : 2}px solid ${REGION[b.status].stroke}`,
+                    border: `${isSel ? 3 : 2}px solid ${regionOf(b.status).stroke}`,
                     background: isSel ? "rgba(255,255,255,0.12)" : "transparent",
                     boxShadow: "0 0 0 1px rgba(0,0,0,0.35)",
                     cursor: drawMode ? "move" : "pointer",
@@ -263,7 +262,7 @@ export function RegionEditor(props: {
                 >
                   <span
                     className="absolute -left-0.5 -top-0.5 rounded-br-md px-1.5 py-0.5 text-[11px] font-semibold text-white"
-                    style={{ background: REGION[b.status].stroke }}
+                    style={{ background: regionOf(b.status).stroke }}
                   >
                     {b.n}{b.item ? ` · ${b.item.display_id}` : ""}
                   </span>
@@ -306,14 +305,14 @@ export function RegionEditor(props: {
               {(Object.keys(CLASSIFICATION) as Classification[]).filter((c) => c !== "unclassified").map((c) => (
                 <button
                   key={c}
-                  title={CLASSIFICATION[c].hint}
+                  title={classificationOf(c).hint}
                   disabled={pending}
                   onClick={() => act(() => setClassification(image.id, c))}
                   className={`rounded-lg px-3 py-2 text-left text-sm ring-1 transition ${
                     image.classification === c ? "bg-ink text-paper ring-ink" : "bg-paper ring-line hover:ring-ink/40"
                   }`}
                 >
-                  {CLASSIFICATION[c].label}
+                  {classificationOf(c).label}
                 </button>
               ))}
             </div>
@@ -347,9 +346,9 @@ export function RegionEditor(props: {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm">
                           <span className="font-semibold">{b.n}.</span>{" "}
-                          {b.item ? <>{b.item.display_id} {b.item.brand} {b.item.name}</> : b.label || REGION[b.status].label}
+                          {b.item ? <>{b.item.display_id} {b.item.brand} {b.item.name}</> : b.label || regionOf(b.status).label}
                         </p>
-                        <span className={`mt-0.5 inline-block rounded px-1.5 text-[11px] ${REGION[b.status].tone}`}>{REGION[b.status].label}</span>
+                        <span className={`mt-0.5 inline-block rounded px-1.5 text-[11px] ${regionOf(b.status).tone}`}>{regionOf(b.status).label}</span>
                       </div>
                     </button>
                   </li>
@@ -373,7 +372,7 @@ export function RegionEditor(props: {
                       <div className="mt-1"><VerificationBadge status={sel.item.verification_status} /></div>
                     </>
                   ) : (
-                    <p className="text-sm text-muted">{REGION[sel.status].label}{sel.notes ? `: ${sel.notes}` : ""}</p>
+                    <p className="text-sm text-muted">{regionOf(sel.status).label}{sel.notes ? `: ${sel.notes}` : ""}</p>
                   )}
                 </div>
               </div>

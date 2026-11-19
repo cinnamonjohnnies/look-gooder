@@ -1,7 +1,7 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { VERIFICATION, type Category, type VerificationStatus } from "@/lib/domain";
+import { VERIFICATION, type Category, type VerificationStatus, verificationOf } from "@/lib/domain";
 
 export function ClosetFilters({ categories, colors, brands }: { categories: Category[]; colors: string[]; brands: string[] }) {
   const router = useRouter();
@@ -34,7 +34,7 @@ export function ClosetFilters({ categories, colors, brands }: { categories: Cate
     <div className="flex flex-wrap gap-2">
       <input className="field max-w-xs" placeholder="Search ID, name, brand, material…" value={q} onChange={(e) => setQ(e.target.value)} />
       {sel("category", "All categories", categories.map((c) => [c.key, c.label]))}
-      {sel("status", "Active items", (Object.keys(VERIFICATION) as VerificationStatus[]).map((s) => [s, VERIFICATION[s].label]))}
+      {sel("status", "Active items", (Object.keys(VERIFICATION) as VerificationStatus[]).map((s) => [s, verificationOf(s).label]))}
       {sel("color", "Any color", colors.map((c) => [c, c]))}
       {sel("brand", "Any brand", brands.map((b) => [b, b]))}
     </div>

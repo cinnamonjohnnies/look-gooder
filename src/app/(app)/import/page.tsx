@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { getAuditSummary, listSourceImages } from "@/lib/queries";
-import { AUDIT, CLASSIFICATION, sourceImageUrl, type AuditStatus, type Classification } from "@/lib/domain";
+import { AUDIT, CLASSIFICATION, sourceImageUrl, type AuditStatus, type Classification, classificationOf } from "@/lib/domain";
 import { AuditBadge } from "@/components/badge";
 import { Uploader } from "@/components/uploader";
 
@@ -100,7 +100,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
                   </div>
                   <p className="mt-2 truncate text-sm">{img.original_filename}</p>
                   <p className="text-xs text-muted">
-                    {CLASSIFICATION[img.classification as Classification].label} · {img.linked_count} linked
+                    {classificationOf(img.classification as Classification).label} · {img.linked_count} linked
                     {img.open_count > 0 && <span className="text-amber-800"> · {img.open_count} open</span>}
                   </p>
                 </Link>

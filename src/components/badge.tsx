@@ -1,4 +1,4 @@
-import { AUDIT, VERIFICATION, type AuditStatus, type VerificationStatus } from "@/lib/domain";
+import { AUDIT, VERIFICATION, type AuditStatus, type VerificationStatus, verificationOf, auditOf } from "@/lib/domain";
 
 export function Pill({ tone, children }: { tone: string; children: React.ReactNode }) {
   return (
@@ -9,11 +9,11 @@ export function Pill({ tone, children }: { tone: string; children: React.ReactNo
 }
 
 export function VerificationBadge({ status }: { status: VerificationStatus }) {
-  const v = VERIFICATION[status];
+  const v = verificationOf(status);
   return <Pill tone={v.tone}>{v.label}</Pill>;
 }
 
 export function AuditBadge({ status }: { status: AuditStatus }) {
-  const v = AUDIT[status];
+  const v = auditOf(status);
   return <Pill tone={v.tone}>{v.label}</Pill>;
 }

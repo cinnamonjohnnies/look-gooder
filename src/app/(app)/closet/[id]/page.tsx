@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { getCategories, getDuplicateSuggestions, getItem, listItemOptions } from "@/lib/queries";
-import { CLASSIFICATION, VERIFICATION, itemTitle, regionImageUrl, type Classification, type VerificationStatus } from "@/lib/domain";
+import { CLASSIFICATION, VERIFICATION, itemTitle, regionImageUrl, type Classification, type VerificationStatus, classificationOf } from "@/lib/domain";
 import { VerificationBadge } from "@/components/badge";
 import { ItemEditForm } from "@/components/item-edit-form";
 import { ItemActions, MakePrimary } from "@/components/item-actions";
@@ -83,7 +83,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={regionImageUrl(p.id, p.version, 240)} alt="" className="h-full w-full object-contain p-1" />
                     </Link>
-                    <p className="truncate text-[11px] text-muted">{p.original_filename} · {CLASSIFICATION[p.classification as Classification].label}</p>
+                    <p className="truncate text-[11px] text-muted">{p.original_filename} · {classificationOf(p.classification as Classification).label}</p>
                     {p.id !== primary?.id ? <MakePrimary itemId={item.id} regionId={p.id} /> : <p className="text-[11px] font-medium">Main photo</p>}
                   </li>
                 ))}
